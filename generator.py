@@ -28,30 +28,43 @@ class GenerationResult(BaseModel):
     model_used: str = "gemini-3-pro-image-preview"
 
 
-class NanoBananaPro:
-    MODEL_NAME = "gemini-3-pro-image-preview"
+MODELS = {
+    "pro": "gemini-3-pro-image-preview",
+    "flash": "gemini-3.1-flash-image-preview",
+}
+
+
+class GeminiImageGenerator:
     MAX_OUTPUT_TOKENS = 32768
-    
-    def __init__(self, api_key: str, output_dir: Optional[Path] = None):
+
+    def __init__(self, api_key: str, output_dir: Optional[Path] = None, model: str = "pro"):
         self.api_key = api_key
+        self.model_name = MODELS.get(model, MODELS["pro"])
         self.output_dir = output_dir or Path.cwd()
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.client = genai.Client(api_key=api_key)
-    
+
     def generate(
         self,
         prompt: str,
         config: GenerationConfig = GenerationConfig(),
         filename_prefix: str = "diagram"
     ) -> GenerationResult:
+        contents = [
+            types.Content(
+                role="user",
+                parts=[types.Part(text=prompt)]
+            )
+        ]
+        return self.generate_with_contents(contents, config, filename_prefix)
+
+    def generate_with_contents(
+        self,
+        contents: list,
+        config: GenerationConfig = GenerationConfig(),
+        filename_prefix: str = "diagram"
+    ) -> GenerationResult:
         try:
-            contents = [
-                types.Content(
-                    role="user",
-                    parts=[types.Part(text=prompt)]
-                )
-            ]
-            
             generation_config = types.GenerateContentConfig(
                 temperature=config.temperature,
                 top_p=config.top_p,
@@ -68,26 +81,27 @@ class NanoBananaPro:
                     image_size=config.image_size.value,
                 ),
             )
-            
+
             response = self.client.models.generate_content(
-                model=self.MODEL_NAME,
+                model=self.model_name,
                 contents=contents,
                 config=generation_config,
             )
-            
+
             image_data = self._extract_image_data(response)
             if not image_data:
                 return GenerationResult(success=False, error="No image data in response")
-            
+
             file_path, width, height = self._save_image(image_data, filename_prefix)
-            
+
             return GenerationResult(
                 success=True,
                 file_path=str(file_path),
                 width=width,
-                height=height
+                height=height,
+                model_used=self.model_name
             )
-            
+
         except Exception as e:
             return GenerationResult(success=False, error=self._format_error(e))
     
@@ -128,9 +142,12 @@ class NanoBananaPro:
             return f"Generation failed: {error_str}"
 
 
+NanoBananaPro = GeminiImageGenerator  # backwards compat
+
+
 class DiagramGenerator:
-    def __init__(self, api_key: str, output_dir: Optional[Path] = None):
-        self.client = NanoBananaPro(api_key=api_key, output_dir=output_dir)
+    def __init__(self, api_key: str, output_dir: Optional[Path] = None, model: str = "pro"):
+        self.client = GeminiImageGenerator(api_key=api_key, output_dir=output_dir, model=model)
     
     def generate_from_prompt(
         self,

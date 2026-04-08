@@ -12,16 +12,25 @@ class DiagramType(str, Enum):
 
 class AspectRatio(str, Enum):
     SQUARE = "1:1"
+    TALL_NARROW = "1:4"
+    ULTRA_TALL = "1:8"
+    PORTRAIT_23 = "2:3"
+    LANDSCAPE_32 = "3:2"
+    VERTICAL_PORTRAIT = "3:4"
+    HORIZONTAL_LANDSCAPE = "4:3"
+    ULTRA_WIDE_BAR = "4:1"
+    PORTRAIT_45 = "4:5"
+    LANDSCAPE_54 = "5:4"
+    ULTRA_WIDE_STRIP = "8:1"
     PORTRAIT = "9:16"
     LANDSCAPE = "16:9"
     WIDE = "21:9"
-    VERTICAL_PORTRAIT = "3:4"
-    HORIZONTAL_LANDSCAPE = "4:3"
 
 
 class ImageSize(str, Enum):
     STANDARD = "1K"
     HIGH = "2K"
+    ULTRA = "4K"
 
 
 def optimize_prompt_for_nano_banana(
