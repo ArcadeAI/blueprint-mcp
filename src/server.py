@@ -47,6 +47,16 @@ def _update_job(job_id, **updates):
             _diagram_jobs[job_id].update(updates)
 
 
+def _register_job(job_id) -> bool:
+    """Reserve a slot for a new job, enforcing a hard cap on in-flight jobs
+    to prevent unbounded memory growth from rapid job submission."""
+    with _jobs_lock:
+        if len(_diagram_jobs) >= MAX_JOBS_IN_MEMORY:
+            return False
+        _diagram_jobs[job_id] = {"status": JobStatus.QUEUED, "created": datetime.now()}
+        return True
+
+
 def _upload_to_files_api(api_key, file_path):
     """Upload image to Gemini Files API, return file URI."""
     client = genai.Client(api_key=api_key)
